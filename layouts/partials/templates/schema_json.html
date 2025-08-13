@@ -32,30 +32,55 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-  {{- range $index, $element := $bc_list }}
-
-    {{- $scratch.Add "path" (printf "%s/" $element ) | safeJS }}
-    {{- $bc_pg := site.GetPage ($scratch.Get "path") -}}
-
-    {{- if (and ($bc_pg) (gt (len . ) 0))}}
-    {{- if (and $index)}}, {{end }}
+    {{- /* Home page */ -}}
     {
       "@type": "ListItem",
-      "position": {{ add 1 $index  }},
-      "name": {{ $bc_pg.Name }},
+      "position": 1,
+      "name": {{ site.Title | jsonify }},
+      "item": {{ site.Home.Permalink | safeHTML }}
+    }
+  {{- $position := 1 }}
+  {{- range $index, $element := $bc_list }}
+    {{- if gt (len $element) 0 }}
+      {{- $scratch.Add "path" (printf "%s/" $element ) | safeJS }}
+      {{- $bc_pg := site.GetPage ($scratch.Get "path") -}}
+      {{- if $bc_pg }}
+        {{- $position = add $position 1 }}
+        {{- $pageName := "" }}
+        {{- if $bc_pg.Title }}
+          {{- $pageName = $bc_pg.Title }}
+        {{- else if $bc_pg.Name }}
+          {{- $pageName = $bc_pg.Name }}
+        {{- else }}
+          {{- $pageName = $element | title }}
+        {{- end }}
+    ,{
+      "@type": "ListItem",
+      "position": {{ $position }},
+      "name": {{ $pageName | jsonify }},
       "item": {{ $bc_pg.Permalink | safeHTML }}
     }
+      {{- end }}
     {{- end }}
-
   {{- end }}
   {{- /*  self-page addition  */ -}}
-  {{- if (ge (len $bc_list) 2) }}, {{end }}
-    {
+  {{- if ne .Permalink site.Home.Permalink }}
+    {{- $position = add $position 1 }}
+    {{- $currentPageName := "" }}
+    {{- if .Title }}
+      {{- $currentPageName = .Title }}
+    {{- else if .Name }}
+      {{- $currentPageName = .Name }}
+    {{- else }}
+      {{- $currentPageName = .File.BaseFileName | humanize }}
+    {{- end }}
+    ,{
       "@type": "ListItem",
-      "position": {{len $bc_list}},
-      "name": {{ .Name }},
+      "position": {{ $position }},
+      "name": {{ $currentPageName | jsonify }},
       "item": {{ .Permalink | safeHTML }}
     }
+  {{- end }}
   ]
 }
 </script>
